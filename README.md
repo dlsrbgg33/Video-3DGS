@@ -1,14 +1,14 @@
-# Video-3DGS: Leveraging 3D Gaussian Splatting for Reconstructing and Editing Dynamic Monocular Videos
+# Enhancing Temporal Consistency in Video Editing by Reconstructing Videos with 3D Gaussian Splatting
 ## [Project page](https://video-3dgs-project.github.io/) | [Paper]()
 <img src='asset/teaser.png' width='600'>
 
-This repository contains the official Pytorch implementation of the paper "Video-3DGS: Leveraging 3D Gaussian Splatting for Reconstructing and Editing Dynamic Monocular Videos".
+This repository contains the official Pytorch implementation of the paper "Enhancing Temporal Consistency in Video Editing by Reconstructing Videos with 3D Gaussian Splatting".
 
 
 
 ## News
 
-- 24/02/xx:  paper/website/code are released.
+- 24/05/xx:  paper/website/code are released.
 
 ## TODO
 
@@ -109,10 +109,13 @@ We recommend user to install related packages and modules of above initial edito
 
 Arguments:
   - editing method
-  - initial_editor
+  - initial_editor: choose between 1: Text2Video-Zero / 2: TokenFlow / 3: RAVE
   - prompt
-  - cate
-  - progressive_num
+  - cate: editing category
+  - progressive_num: the number of recursive refinement
+
+If you set progressive_num as 0, you will have the refined output from single-phase refiner.
+Otherwise, you will run recursive and ensembled refiner.
 
 ## Citation
 ```shells
