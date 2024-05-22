@@ -68,7 +68,6 @@ def run(input_ns, video_path, progress):
     input_ns.sample_size = len(input_ns.image_pil_list)
     print(f'Frame count: {len(input_ns.image_pil_list)}')
 
-
     controlnet_class = RAVE_MultiControlNet if '-' in str(input_ns.controlnet_conditioning_scale) else RAVE
     
 
@@ -76,6 +75,8 @@ def run(input_ns, video_path, progress):
 
     CN.init_models(input_ns.hf_cn_path, input_ns.hf_path, input_ns.preprocess_name, input_ns.model_id)
     
+
+
     input_dict = vars(input_ns)
     yaml_dict = {k:v for k,v in input_dict.items() if k != 'image_pil_list'}
 
@@ -117,31 +118,50 @@ if __name__ == '__main__':
     # load video path for inference
     video_path = sys.argv[1]
     progress = int(sys.argv[4])
-    output_num = int(sys.argv[5])
+    ig_strategy = str(sys.argv[5]) 
+    if ig_strategy == "multi":
+        controlnet_conditioning_scale_list = [1.0, 1.5, 2.0]
+    else:
+        controlnet_conditioning_scale_list = [1.0]
+
     input_dict_list['save_path'] = os.path.join(
-        input_dict_list['save_path'], "vid_output_{}".format(output_num))
-
-    input_dict_list['video_name'] = input_dict_list['save_path']
-    list_vals = []
-    list_keys = []
-    for key in input_dict_list.keys():
-        if type(input_dict_list[key]) is list:
-            list_vals.append(input_dict_list[key])
-            list_keys.append(key)
-
-    input_dict_list_temp = {k:v for k,v in input_dict_list.items() if k not in list_keys}  
-    
-    for item in list(itertools.product(*list_vals)):
-        input_dict_list_temp.update({list_keys[i]:item[i] for i in range(len(list_keys))})
-
-        input_ns = argparse.Namespace(**input_dict_list_temp)
-        run(input_ns, video_path, progress)
-    
+        input_dict_list['save_path'], "vid_output_0")
     data_folder = "models/video_editors/RAVE/generated/data"
-    need_to_delete_ctrl=os.path.join(data_folder, "controls", input_dict_list['video_name'])
-    need_to_delete_inv=os.path.join(data_folder, "inverses", input_dict_list['video_name'])
-    if os.path.exists(need_to_delete_ctrl):
-        shutil.rmtree(need_to_delete_ctrl)
-    if os.path.exists(need_to_delete_inv):
-        shutil.rmtree(need_to_delete_inv)
+    prv_ctrl = os.path.join(data_folder, "controls", input_dict_list['save_path'])
+    prv_inv = os.path.join(data_folder, "inverses", input_dict_list['save_path'])
+
+    final_idx = 0
+    for idx, controlnet_conditioning_scale in enumerate(controlnet_conditioning_scale_list):
+        input_dict_list['controlnet_conditioning_scale'] = controlnet_conditioning_scale
+
+        if idx > 0:
+            input_dict_list['save_path'] =  input_dict_list['save_path'].replace("vid_output_{}".format(idx-1), "vid_output_{}".format(idx))
+            new_ctrl = os.path.join(data_folder, "controls", input_dict_list['save_path'])
+            shutil.copytree(prv_ctrl, new_ctrl)
+
+        input_dict_list['video_name'] = input_dict_list['save_path']
+        list_vals = []
+        list_keys = []
+        for key in input_dict_list.keys():
+            if type(input_dict_list[key]) is list:
+                list_vals.append(input_dict_list[key])
+                list_keys.append(key)
+
+        input_dict_list_temp = {k:v for k,v in input_dict_list.items() if k not in list_keys}  
+        
+        for item in list(itertools.product(*list_vals)):
+            input_dict_list_temp.update({list_keys[i]:item[i] for i in range(len(list_keys))})
+
+            input_ns = argparse.Namespace(**input_dict_list_temp)
+            run(input_ns, video_path, progress)
+        final_idx = idx
+        
+
+    for d_idx, controlnet_conditioning_scale in enumerate(controlnet_conditioning_scale_list):
+        need_to_delete_ctrl=os.path.join(data_folder, "controls", input_dict_list['video_name'].replace("vid_output_{}".format(final_idx), "vid_output_{}".format(d_idx)))
+        need_to_delete_inv=os.path.join(data_folder, "inverses", input_dict_list['video_name'].replace("vid_output_{}".format(final_idx), "vid_output_{}".format(d_idx)))
+        if os.path.exists(need_to_delete_ctrl):
+            shutil.rmtree(need_to_delete_ctrl)
+        if os.path.exists(need_to_delete_inv):
+            shutil.rmtree(need_to_delete_inv)
         

@@ -4,7 +4,8 @@ import numpy as np
 import tomesd
 import torch
 
-from diffusers import StableDiffusionInstructPix2PixPipeline, StableDiffusionControlNetPipeline, ControlNetModel, UNet2DConditionModel
+from models.video_editors.text2vidzero.diffusers.src.diffusers import StableDiffusionInstructPix2PixPipeline, StableDiffusionInstructPix2PixProgPipeline, StableDiffusionControlNetPipeline
+# from diffusers import StableDiffusionInstructPix2PixPipeline, StableDiffusionControlNetPipeline, ControlNetModel, UNet2DConditionModel
 from diffusers.schedulers import EulerAncestralDiscreteScheduler, DDIMScheduler
 from models.video_editors.text2vidzero.text_to_video_pipeline import TextToVideoPipeline
 
@@ -19,7 +20,7 @@ on_huggingspace = os.environ.get("SPACE_AUTHOR_NAME") == "PAIR"
 
 
 class ModelType(Enum):
-    Pix2Pix_Video = 1,
+    Pix2Pix = 1,
     Text2Video = 2,
     ControlNetCanny = 3,
     ControlNetCannyDB = 4,
@@ -33,7 +34,7 @@ class Model:
         self.dtype = dtype
         self.generator = torch.Generator(device=device)
         self.pipe_dict = {
-            ModelType.Pix2Pix_Video: StableDiffusionInstructPix2PixPipeline,
+            ModelType.Pix2Pix: StableDiffusionInstructPix2PixPipeline,
             ModelType.Text2Video: TextToVideoPipeline,
             ModelType.ControlNetCanny: StableDiffusionControlNetPipeline,
             ModelType.ControlNetCannyDB: StableDiffusionControlNetPipeline,
@@ -60,9 +61,11 @@ class Model:
         torch.cuda.empty_cache()
         gc.collect()
         safety_checker = kwargs.pop('safety_checker', None)
+        requires_safety_checker = kwargs.pop('requires_safety_checker', False)
         if model_path is None:
             self.pipe = self.pipe_dict[model_type].from_pretrained(
-                model_id, safety_checker=safety_checker, **kwargs).to(self.device).to(self.dtype)
+                model_id, safety_checker=None,
+                requires_safety_checker=requires_safety_checker, **kwargs).to(self.device).to(self.dtype)
         else:
             self.pipe = self.pipe_dict[model_type].from_pretrained(
                 model_path).to(self.device).to(self.dtype)
@@ -147,16 +150,16 @@ class Model:
                         resolution=512,
                         seed=0,
                         image_guidance_scale=1.0,
-                        update_idx=None,
                         start_t=0,
                         end_t=-1,
                         out_fps=-1,
                         chunk_size=8,
                         merging_ratio=0.0,
-                        use_cf_attn=True):
+                        use_cf_attn=True,
+                        ig_strategy="single"):
         print("Module Pix2Pix")
-        if self.model_type != ModelType.Pix2Pix_Video:
-            self.set_model(ModelType.Pix2Pix_Video,
+        if self.model_type != ModelType.Pix2Pix:
+            self.set_model(ModelType.Pix2Pix,
                         model_id="timbrooks/instruct-pix2pix")
 
             self.pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(
@@ -164,26 +167,33 @@ class Model:
             if use_cf_attn:
                 self.pipe.unet.set_attn_processor(
                     processor=self.pix2pix_attn_proc)
-                    
+
+        if ig_strategy == "single":
+            image_guidance_scale_list = [image_guidance_scale]
+        elif ig_strategy == "multi":
+            image_guidance_scale_list = [1.0, 1.5, 2.0]
+        else:
+            raise ValueError("Invalid image guidance strategy")
+
         video_path = video
         video, _ = utils.prepare_vidframes(
             video, resolution, self.device, self.dtype, True, start_t, end_t, out_fps)
 
         self.generator.manual_seed(seed)
-        result = self.inference(image=video,
-                                prompt=prompt,
-                                seed=seed,
-                                output_type='numpy',
-                                num_inference_steps=30 // update_num,
-                                image_guidance_scale=image_guidance_scale,
-                                split_to_chunks=True,
-                                chunk_size=chunk_size,
-                                merging_ratio=merging_ratio
-                                )
+        for ig_idx, image_guidance_scale in enumerate(image_guidance_scale_list):
+            result = self.inference(image_orig=video,
+                                    image=video,
+                                    prompt=prompt,
+                                    seed=seed,
+                                    output_type='numpy',
+                                    num_inference_steps=30 // update_num,
+                                    image_guidance_scale=image_guidance_scale,
+                                    split_to_chunks=True,
+                                    chunk_size=chunk_size,
+                                    merging_ratio=merging_ratio)
 
-        return utils.create_gif(result, edited_path=edited_path,
-            original_res=[480,480], video_path=video_path, update_idx=update_idx)
-
+            utils.create_gif_idx(result, edited_path=edited_path,
+                original_res=[480,480], video_path=video_path, ig_idx=ig_idx)
 
 
 if __name__ == '__main__':

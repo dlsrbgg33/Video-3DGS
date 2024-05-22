@@ -37,7 +37,7 @@ def get_args(parser):
     parser.add_argument('-im', '--in_img',  default='_in', help='input image or directory with images (overrides width and height)')
     parser.add_argument('-sm', '--sampler', default='ddim', choices=['ddim'], help="Using only DDIM for inversion")
     parser.add_argument('-C','--cfg_scale', default=13, type=float, help="prompt guidance scale")
-    parser.add_argument('--output_num',         default=0, type=int, help='')
+    parser.add_argument('--ig_strategy',         default="single", type=str, help='')
 
 
     return parser.parse_args()
@@ -273,7 +273,7 @@ def invert(sd, lats, cnet_conds, a):
         print(' decoding..')
         decode_images(sd, recon_lats, os.path.join(a.out_dir, 'recon'))
 
-def edit(sd, lats, cnet_conds, a, progress):
+def edit(sd, lats, cnet_conds, a, progress, cfg_scale):
     # get noise
     last_lat_path = file_list(a.lat_dir, ext='pt')[-1]
     last_lat_step = int(basename(last_lat_path).split('-')[-1])
@@ -284,7 +284,7 @@ def edit(sd, lats, cnet_conds, a, progress):
     ddim_eps = ddim_eps.to(torch.float16).to(device)
 
     print(' editing..')
-    editor = TokenFlow(sd, a.in_txt, a.src_txt, a.unprompt, cnet_conds, a.lat_dir, a.cfg_scale, a.batch_size)
+    editor = TokenFlow(sd, a.in_txt, a.src_txt, a.unprompt, cnet_conds, a.lat_dir, cfg_scale, a.batch_size)
     if a.edit_type == 'pnp':
         editor.init_pnp(conv_inject_t = int(a.steps * a.pnp_f_t), qk_inject_t = int(a.steps * a.pnp_attn_t))
     if a.edit_type == 'sde':
@@ -307,40 +307,51 @@ def main():
 
     txt = a.in_txt
 
+    if a.ig_strategy == "single":
+        cfg_scale_list = [a.cfg_scale]
+    elif a.ig_strategy == "multi":
+        cfg_scale_list = [10, 15, 20]
+    elif a.ig_strategy == "multi2":
+        cfg_scale_list = [5, 15, 25]
+
     a.steps = a.steps // a.progress
-    a.out_dir = os.path.join(a.out_dir, "vid_output_{}".format(a.output_num))
-    a.lat_dir = os.path.join(a.out_dir, 'lats')
-    a.lat_steps = a.steps # or can be 10 x steps
-    os.makedirs(a.out_dir, exist_ok=True)
-    save_cfg(a, a.out_dir)
-    seed_everything(a.seed)
-    a.unprompt = '' if a.unprompt=='no' else unprompt if a.unprompt is None else ', '.join([unprompt, a.unprompt])
-
-    sd = SDfu(a)
-
-    count = int(math.ceil(len(img_list(a.in_img)) / a.max_len))
-    print(count, 'chunks')
-    for i in range(count):
-        frames = [load_img(path)[0] for path in img_list(a.in_img)[i*a.max_len : (i+1)*a.max_len]]
-        print(' encoding lats..')
-        # lats: 32x4x60x60
+    out_dir = a.out_dir
+    for s_idx, cfg_scale in enumerate(cfg_scale_list):
         
-        lats = torch.cat([sd.img_lat(x, deterministic=True) for x in frames])
+        a.out_dir = os.path.join(out_dir, "vid_output_{}".format(str(s_idx)))
+        a.lat_dir = os.path.join(out_dir, 'lats_{}'.format(str(s_idx)))
+        a.lat_steps = a.steps # or can be 10 x steps
+        os.makedirs(a.out_dir, exist_ok=True)
+        save_cfg(a, a.out_dir)
+        seed_everything(a.seed)
+        a.unprompt = '' if a.unprompt=='no' else unprompt if a.unprompt is None else ', '.join([unprompt, a.unprompt])
 
-        print(' encoded size', np.prod(list(lats.shape)), lats.shape)
-        cnet_conds = (torch.cat([load_img(path)[0] for path in img_list(a.control_img)[i*a.max_len : (i+1)*a.max_len]]) + 1.) / 2. \
-                      if sd.use_cnet else torch.zeros([len(frames)])
+        sd = SDfu(a)
 
-        # if not os.path.exists(a.lat_dir) or len(file_list(a.lat_dir, ext='pt'))==0:
-        invert(sd, lats, cnet_conds, a)
-        if isset(a, 'in_txt'):
-            edit(sd, lats, cnet_conds, a, a.progress)
+        
+        count = int(math.ceil(len(img_list(a.in_img)) / a.max_len))
+        print(count, 'chunks')
+        for i in range(count):
+            frames = [load_img(path)[0] for path in img_list(a.in_img)[i*a.max_len : (i+1)*a.max_len]]
+            print(' encoding lats..')
+            # lats: 32x4x60x60
+            
+            lats = torch.cat([sd.img_lat(x, deterministic=True) for x in frames])
 
-        try:
-            save_video(os.path.join(a.out_dir, 'out'), fps=8)
-        except:
-            print("Cannot export video (pyav not installed?), exiting")
+            print(' encoded size', np.prod(list(lats.shape)), lats.shape)
+            cnet_conds = (torch.cat([load_img(path)[0] for path in img_list(a.control_img)[i*a.max_len : (i+1)*a.max_len]]) + 1.) / 2. \
+                        if sd.use_cnet else torch.zeros([len(frames)])
+            # if not os.path.exists(a.lat_dir) or len(file_list(a.lat_dir, ext='pt'))==0:
+            invert(sd, lats, cnet_conds, a)
+            if isset(a, 'in_txt'):
+                edit(sd, lats, cnet_conds, a, a.progress, cfg_scale)
 
+            try:
+                save_video(os.path.join(a.out_dir, 'out'), fps=8)
+            except:
+                print("Cannot export video (pyav not installed?), exiting")
+
+        shutil.rmtree(a.lat_dir)
 
 if __name__ == '__main__':
     main()
