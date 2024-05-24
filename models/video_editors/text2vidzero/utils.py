@@ -87,8 +87,10 @@ def create_gif(frames, rescale=False,
                edited_path=None, original_res=None,
                video_path=None, update_idx=None):
 
+    # image_save_path = os.path.join(
+    #     edited_path, "vid_output_{}".format(str(update_idx)))
     image_save_path = os.path.join(
-        edited_path, "vid_output_{}".format(str(update_idx)))
+        edited_path, "vid_output_0")
 
     os.makedirs(image_save_path, exist_ok=True)
     outputs = []
@@ -110,6 +112,32 @@ def create_gif(frames, rescale=False,
     return image_save_path
 
 
+def create_gif_idx(frames, rescale=False,
+               edited_path=None, original_res=None,
+               video_path=None, ig_idx=None):
+
+    image_save_path = os.path.join(
+        edited_path, "vid_output_{}".format(str(ig_idx)))
+
+    os.makedirs(image_save_path, exist_ok=True)
+    outputs = []
+
+    for i, video_source in enumerate(sorted(os.listdir(video_path))):
+        file_postpix = video_source.split('/')[-1]
+        x = frames[i]
+        x = torchvision.utils.make_grid(torch.Tensor(x), nrow=4)
+
+        if rescale:
+            x = (x + 1.0) / 2.0  # -1,1 -> 0,1
+        x = (x * 255).numpy().astype(np.uint8)
+        x = cv2.resize(x, original_res).astype(np.uint8)
+
+        outputs.append(x)
+        imageio.imsave(os.path.join(image_save_path, file_postpix), x)
+
+    create_gif_from_frames(image_save_path)
+    return image_save_path
+
 
 class CrossFrameAttnProcessor:
     def __init__(self, unet_chunk_size=2):
@@ -128,8 +156,8 @@ class CrossFrameAttnProcessor:
         is_cross_attention = encoder_hidden_states is not None
         if encoder_hidden_states is None:
             encoder_hidden_states = hidden_states
-        elif attn.cross_attention_norm:
-            encoder_hidden_states = attn.norm_cross(encoder_hidden_states)
+        # elif attn.cross_attention_norm:
+        #     encoder_hidden_states = attn.norm_cross(encoder_hidden_states)
         key = attn.to_k(encoder_hidden_states)
         value = attn.to_v(encoder_hidden_states)
         # Sparse Attention

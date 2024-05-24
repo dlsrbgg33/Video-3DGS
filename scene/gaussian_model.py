@@ -126,6 +126,7 @@ class GaussianModel:
     def get_alpha(self):
         if self._alpha is not None:
             return self._alpha
+            # return self.opacity_activation(self._alpha)
 
     def get_covariance(self, scaling_modifier = 1):
         return self.covariance_activation(self.get_scaling, scaling_modifier, self._rotation)

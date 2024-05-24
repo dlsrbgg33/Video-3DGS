@@ -15,7 +15,7 @@ import json
 
 from numpy.random.mtrand import f
 from utils.system_utils import searchForMaxIteration
-from scene.dataset_readers import sceneLoadTypeCallbacks
+from scene.dataset_readers import sceneLoadTypeCallbacks, CameraInfo
 from scene.gaussian_model import GaussianModel
 from scene.deform_model import DeformModel
 from arguments import ModelParams
@@ -25,6 +25,8 @@ import copy
 import numpy as np
 from scene.dataset_readers import storePly
 import math
+
+from scene.shs_updater import ShsUpdater
 
 np.random.seed(1234)
 
@@ -263,5 +265,6 @@ class Scene_fore_w_rand_group:
 
     def getFramesInClip(self):
         return self.full_frame_name
+
 
 

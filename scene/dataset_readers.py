@@ -52,6 +52,7 @@ class CameraInfo(NamedTuple):
     detail_image: Optional[str] = None
     depth: Optional[np.array] = None
     edited_image: Optional[list] = None
+    img_edited_image: Optional[list] = None
 
 
 class SceneInfo(NamedTuple):
@@ -310,6 +311,7 @@ def readColmapCamerasFB(cam_extrinsics, cam_intrinsics, images_folder, n_frames,
 
         if init_edit_path is not None:
             edited_image = []
+            img_edited_image = []
             edited_image_folders = sorted(os.listdir(init_edit_path))
             for edited_image_folder in edited_image_folders:
                 if "vid_output" in edited_image_folder:
@@ -320,8 +322,14 @@ def readColmapCamerasFB(cam_extrinsics, cam_intrinsics, images_folder, n_frames,
                     except:
                         edited_image_path = os.path.join(sub_folder, os.path.basename(extr.name).replace('jpg', 'png'))
                         edited_image.append(Image.open(edited_image_path))
+                if "edit_output" in edited_image_folder:
+                    sub_edit_folder = os.path.join(init_edit_path, edited_image_folder)
+                    if os.path.exists(os.path.join(sub_edit_folder, os.path.basename(extr.name).replace('jpg', 'png'))):
+                        edited_image_path = os.path.join(sub_edit_folder, os.path.basename(extr.name).replace('jpg', 'png'))
+                        img_edited_image.append(Image.open(edited_image_path))
         else:
             edited_image = None
+            img_edited_image = None
 
         if deform_type == "multi":
             minimum_image_name = int(sorted(glob.glob(images_folder+'/*'))[0].split('/')[-1][:-4])
@@ -331,7 +339,8 @@ def readColmapCamerasFB(cam_extrinsics, cam_intrinsics, images_folder, n_frames,
         fid = (int(image_name)-minimum_image_name) / (num_frames - 1)
         cam_info = CameraInfo(uid=uid, R=R, T=T, FovY=FovY, FovX=FovX, image=image,
                               image_path=image_path, image_name=image_name, width=width, height=height, fid=fid,
-                              detail_image=detail_image, depth=depth, edited_image=edited_image)
+                              detail_image=detail_image, depth=depth, edited_image=edited_image,
+                              img_edited_image=img_edited_image)
         cam_infos.append(cam_info)
     sys.stdout.write('\n')
     return cam_infos

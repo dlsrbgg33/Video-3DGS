@@ -156,7 +156,7 @@ class Model:
                         chunk_size=8,
                         merging_ratio=0.0,
                         use_cf_attn=True,
-                        ig_strategy="single"):
+                        ensembled_strategy="single"):
         print("Module Pix2Pix")
         if self.model_type != ModelType.Pix2Pix:
             self.set_model(ModelType.Pix2Pix,
@@ -170,7 +170,8 @@ class Model:
 
         if ig_strategy == "single":
             image_guidance_scale_list = [image_guidance_scale]
-        elif ig_strategy == "multi":
+        elif ig_strategy == "ensembled":
+            # we currently manually set three scales
             image_guidance_scale_list = [1.0, 1.5, 2.0]
         else:
             raise ValueError("Invalid image guidance strategy")

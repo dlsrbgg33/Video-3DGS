@@ -31,25 +31,29 @@ import logging
 import time
 import shutil
 
-from gaussian_renderer import render_deform
-from scene import Scene_fore_w_rand_group, GaussianModel, DeformModel, Scene_fore_w_rand_group_unified
-from argparse import ArgumentParser, Namespace
-from arguments import ModelParamsForeBack, PipelineParams
-from arguments import OptimizationClipMaskParams3k, OptimizationClipMaskParams5k, OptimizationClipMaskParams30k 
-from arguments import OptimizationClipMaskParams10k, OptimizationClipMaskParamsEdit
-
-from utils.loss_utils import loss_func_w_bilateral, generate_bi_image
-from utils.mask_gen_utils import gen_mask
-from utils.cmd_utils import edit_cmd_run
-from utils.general_utils import check_n_groups_clips
+# define MC-COLMAP function
 from mc_colmap import run_colmap_mask_clip, run_colmap
 
+# define 3DGS related functions
+from gaussian_renderer import render_deform
+from scene import Scene_fore_w_rand_group, GaussianModel, DeformModel
+from argparse import ArgumentParser, Namespace
+from arguments import ModelParamsForeBack, PipelineParams
+from arguments import OptimizationClipMaskParams3k, OptimizationClipMaskParams5k 
+from arguments import OptimizationClipMaskParams10k, OptimizationClipMaskParamsEdit
+
+# define evaluation function
 from main_3dgsvid_render import render_sets_dual
 from metrics import evaluate, evaluate_edit
 from clip_metrics import clipscore
 
+# define utils function
+from utils.loss_utils import loss_func_w_bilateral, generate_bi_image
+from utils.mask_gen_utils import gen_mask
+from utils.cmd_utils import edit_cmd_run
+from utils.general_utils import check_n_groups_clips
 from utils.gif_utils import create_gif_from_frames
-from datetime import datetime
+
 
 
 
@@ -421,7 +425,7 @@ if __name__ == "__main__":
     # setup for Video-3DGS (Editing)
     parser.add_argument("--skip_recon", action='store_true', default=False)
     parser.add_argument("--editing_method", type=str, default=None,
-        help="[None, noprogress_single, noprogress_multi, progress_single, progress_multi, progress_accu_multi, progress_accu_all_multi]")
+        help="[None, norecursive_single, norecursive_ensembled, recursive_single, recursive_ensembled]")
     parser.add_argument("--initial_editor", type=int, default=1,
         help="choose the initial video editor. We currently support three video editors."
              "text2video-zero[3]: 1 / TokenFlow[4]: 2 / RAVE[5]: 3")
@@ -429,10 +433,9 @@ if __name__ == "__main__":
     parser.add_argument('--ori_text', type=str, default="")
     parser.add_argument('--cate', type=str, default="style",
         help="[style, object, back, multi]")
-    parser.add_argument('--progressive_num', type=int, default=0)
+    parser.add_argument('--recursive_num', type=int, default=0)
     parser.add_argument('--cuda_num', type=int, default=2)
     parser.add_argument('--delete_weights', type=bool, default=True)
-
 
 
     args = parser.parse_args(sys.argv[1:])
@@ -450,9 +453,6 @@ if __name__ == "__main__":
     elif args.iteration == 10000:
         op = OptimizationClipMaskParams10k(parser)
         iter_size = '10k'
-    elif args.iteration == 30000:
-        op = OptimizationClipMaskParams30k(parser)
-        iter_size = '30k'
     else:
         NotImplementedError("iteration should in [3k, 5k, 10k]")
         op, iter_size = None, None
@@ -491,8 +491,8 @@ if __name__ == "__main__":
 
     prompt = args.prompt
     if args.editing_method is not None:
-        if "noprogress" in args.editing_method:
-            assert args.progressive_num == 0
+        if "norecursive" in args.editing_method:
+            assert args.recursive_num == 0
 
     '''
      - Settings to be considered (recon)
@@ -515,26 +515,20 @@ if __name__ == "__main__":
        5) tf_weight: the weight of tf loss
             - 0.0 / 2.0
      - Settings to be considered (edit)
-       0) initial_editor
-       1) editing method
+       0) editing category
+       1) initial_editor
+       2) editing method
     '''
     scene_name=s_path.split('/')[-1]
-    today = datetime.today()
-    # formatted_date = today.strftime("%Y-%m-%d")  # For example, "2024-05-06"
-    formatted_date = "vv_yt"
 
-    args.model_path = "output/{}/vid3dgs_output/recon/dual{}_fore{}_def{}_group{}_tf{}_fsize{}_iter{}/{}_frame{}".format(
-        formatted_date, args.use_dual, args.fore_random, args.deform_type, str(args.group_size),
+    args.model_path = "output/vid3dgs_output/recon/dual{}_fore{}_def{}_group{}_tf{}_fsize{}_iter{}/{}_frame{}".format(
+        args.use_dual, args.fore_random, args.deform_type, str(args.group_size),
         args.tfloss_weight, args.f_size, args.iteration, scene_name, str(frame_number))
     if args.editing_method is not None:
         args.model_path = args.model_path.replace("recon", "edit_{}/{}_{}".format(
             args.cate, editor, args.editing_method))
     os.makedirs(args.model_path, exist_ok=True)
     print("Saving all into " + args.model_path)
-
-    result_path = os.path.join(args.model_path, 'train_edit2', 'results_clip.json')
-    if os.path.exists(result_path):
-        exit()
 
     logging.basicConfig(
         filename=os.path.join(args.model_path, 'end-to-end-time.log'),
@@ -547,14 +541,14 @@ if __name__ == "__main__":
         For better 3D points aqcuistion in dynamic scene where moving objects exist,
         we obtain 3D points of dynamic objects using MC-COLMAP.
     '''
-    # 1-1. Path for outputs of MC-COLMAP.
+    # 1-1. Prepare path for outputs of MC-COLMAP.
     pts_folder = os.path.join(s_path+"_pts_camera_from_deva")
     fore_folder = os.path.join(pts_folder, 'mask', 'local', 'full')
     os.makedirs(fore_folder, exist_ok=True)
     subfolders_fore = [f.name for f in os.scandir(fore_folder) if f.is_dir()]
     clip_folders_fore = [folder for folder in subfolders_fore if folder.startswith("clip_")]
 
-    # 1-2. Generate Mask (DEVA[2])
+    # 1-2. Generate mask (DEVA[2])
     start_time = time.time()
     logging.info(f"Generating Mask for Frg-3DGS")
     input_path = os.path.join(pts_folder, 'input')
@@ -598,12 +592,12 @@ if __name__ == "__main__":
 
     if not args.only_eval:
         # Optimizing 3DGS
-        # Video-3DGS-Recon: Rendering and Eval (PSNR/SSIM) /
-        # Video-3DGS-Edit: Editing and Eval (WarpSSIMxCLIP=Qedit)
-        for update_idx in range(args.progressive_num+1):
+        # Video-3DGS (Recon): Rendering and Eval (metrics: PSNR / SSIM)
+        # Video-3DGS (Edit): Editing and Eval (metrics: WarpSSIM / WarpSSIM x CLIP=Qedit)
+        for update_idx in range(args.recursive_num+1):
             v_op = op if update_idx == 0 else edit_op
             v_args = args if update_idx == 0 else edit_args
-            # you can skip reconstruction and move onto Video-3DGS-Edit
+            # you can skip reconstruction and move onto Video-3DGS (Edit)
             if edited_path is not None or not args.skip_recon:
                 torch.autograd.set_detect_anomaly(args.detect_anomaly)    
                 logging.info(f"Training start")
@@ -627,70 +621,59 @@ if __name__ == "__main__":
                 total_render_time = render_end_time - start_time
                 logging.info(f"Rendering finished in {total_render_time:.2f} seconds")
 
-                # 4. Metric (PSNR / SSIM / WarpSSIM)
-                # PSNR / SSIM / Warp SSIM for video recon
-                # Warp SSIM / CLIP Score / Pick Score for video editing
+                # 4. Evaluation
                 if edited_path is not None:
-                    evaluate_edit([args.model_path], args, edited_path, update_idx)
+                    # WarpSSIM
+                    evaluate_edit([args.model_path], args, edited_path, update_idx) 
+                    clipscore(prompt, args.model_path, edited_path, update_idx)
                 else:
+                    # PSNR / SSIM
                     evaluate([args.model_path])
                 
                 # 5. Generate the GIF for visualization
                 create_gif_from_frames(args.model_path, args.iteration, edited_path, update_idx=update_idx)
-                if edited_path is not None:
-                    clipscore(prompt, args.model_path, edited_path, update_idx)
 
-            # 6 (option). Run video-3dgs-edit if you want to proceed to editing.
-            #       skip editing by setting "editing_method" as None. 
+            # 6. Video-3DGS (Edit) - you can skip editing by setting "editing_method" as None. 
             if args.editing_method is not None:
-                editing_folder = "output/{}/initial_edit/{}".format(formatted_date, str(args.editing_method))
+                editing_folder = "output/initial_edit/{}".format(str(args.editing_method))
                 joined_prompt = prompt.replace(" ", "_")
                 edited_path = os.path.join(editing_folder, editor, s_path.split('/')[-1], joined_prompt)
 
                 if update_idx == 0:
-                    # If single update or first update for progressive update,
-                    # load original video (we currently use original images for fair comparison) for editing 
+                    # If first update, we load original video for editing 
                     prev_vid_path = "train_edit0/ours_{}".format(args.iteration)
                     prev_vid_path = os.path.join(args.model_path,
                         prev_vid_path, "gt")
                 else:
+                    # otherwise, we append previous edited videos into edited pool  
                     prev_vid_path = "train_edit{}/ours_1000".format(update_idx)
                     prev_vid_path = os.path.join(args.model_path,
                         prev_vid_path, "refined_edited")
-                    if args.editing_method == "progress_accu_multi":
+                    for fld_idx, foldername in enumerate(sorted(os.listdir(edited_path))):
                         prv_edited_path = os.path.join(
-                            edited_path, "vid_output_prv")
+                            edited_path, "vid_output_prv_{}".format(fld_idx))
                         os.makedirs(prv_edited_path, exist_ok=True)
-                        for filename in os.listdir(prev_vid_path):
-                            file_path = os.path.join(prev_vid_path, filename)
+                        prev_vid_path_sub = prev_vid_path.replace("refined_edited", foldername)
+                        for filename in os.listdir(prev_vid_path_sub):
+                            file_path = os.path.join(prev_vid_path_sub, filename)
                             if os.path.isfile(file_path):
                                 shutil.copy(file_path, prv_edited_path)
-                    elif args.editing_method == "progress_accu_all_multi":
-                        for fld_idx, foldername in enumerate(sorted(os.listdir(edited_path))):
-                            prv_edited_path = os.path.join(
-                                edited_path, "vid_output_prv_{}".format(fld_idx))
-                            os.makedirs(prv_edited_path, exist_ok=True)
-                            prev_vid_path_sub = prev_vid_path.replace("refined_edited", foldername)
-                            for filename in os.listdir(prev_vid_path_sub):
-                                file_path = os.path.join(prev_vid_path_sub, filename)
-                                if os.path.isfile(file_path):
-                                    shutil.copy(file_path, prv_edited_path)
 
-                # Run video editor (here includes "vid-pix2pix, tokenflow, RAVE")
-                ig_strategy = args.editing_method.split('_')[-1]
+                # Run video editor including "vid-pix2pix, tokenflow, RAVE")
                 if editor == "vid-pix2pix":
                     ve_model.process_pix2pix(
                         prev_vid_path, prompt, edited_path,
-                        update_num=args.progressive_num+1, ig_strategy=ig_strategy)
+                        update_num=args.recursive_num+1,
+                        ensembled_strategy=args.editing_method.split('_')[-1])
                 else:
                     edit_cmd_run(
                         editor, args.cuda_num, prev_vid=prev_vid_path,
                         text=args.prompt, edited_path=edited_path,
-                        progressive=args.progressive_num+1,
-                        ori_text=args.ori_text, ig_strategy=ig_strategy)
+                        update_num=args.recursive_num+1, ori_text=args.ori_text,
+                        ensembled_strategy=args.editing_method.split('_')[-1])
 
                 # Final update
-                if update_idx == args.progressive_num:
+                if update_idx == args.recursive_num:
                     update_idx += 1
                     load_after_diff = edited_path is not None
                     torch.autograd.set_detect_anomaly(args.detect_anomaly)
@@ -704,10 +687,10 @@ if __name__ == "__main__":
                         load_after_diff=load_after_diff, init_edit_path=edited_path,
                         update_idx=update_idx)
                     evaluate_edit([args.model_path], args, edited_path, update_idx)
-                    create_gif_from_frames(args.model_path, args.iteration, edited_path, update_idx=update_idx)
                     clipscore(prompt, args.model_path, edited_path, update_idx)
+                    create_gif_from_frames(args.model_path, args.iteration, edited_path, update_idx=update_idx)
             else:
-                # if not progressive editing, only run once for rendering
+                # if not recursive editing, only run once for rendering
                 break
         
         # delete heavy files
@@ -725,6 +708,5 @@ if __name__ == "__main__":
             load_after_diff=False, init_edit_path=edited_path,
             update_idx=0)
             
-        # TODO) add evaluation pipeline for only_eval
-        print("\nEvaluation complete.")
+        print("\Rendering complete.")
     

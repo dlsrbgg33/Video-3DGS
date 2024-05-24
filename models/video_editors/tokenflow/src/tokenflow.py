@@ -30,14 +30,14 @@ def get_args(parser):
     # pnp
     parser.add_argument('--pnp_attn_t',     default=0.5, type=float, help='injection thresholds [0, 1]')
     parser.add_argument('--pnp_f_t',        default=0.8, type=float, help='injection thresholds [0, 1]')
-    parser.add_argument('--progress',        default=1, type=int, help='injection thresholds [0, 1]')
+    parser.add_argument('--update_num',        default=1, type=int, help='injection thresholds [0, 1]')
     # sdedit
     parser.add_argument('--start',          default=0.7, type=float, help='start sampling from t = start * 1000')
     # override standard args
     parser.add_argument('-im', '--in_img',  default='_in', help='input image or directory with images (overrides width and height)')
     parser.add_argument('-sm', '--sampler', default='ddim', choices=['ddim'], help="Using only DDIM for inversion")
     parser.add_argument('-C','--cfg_scale', default=13, type=float, help="prompt guidance scale")
-    parser.add_argument('--ig_strategy',         default="single", type=str, help='')
+    parser.add_argument('--ensembled_strategy',         default="single", type=str, help='')
 
 
     return parser.parse_args()
@@ -169,7 +169,7 @@ class TokenFlow(nn.Module):
         denoised_lat = self.scheduler.step(noise_pred, t, x).prev_sample
         return denoised_lat
 
-    def sample_loop(self, lats, batch_pivot=False, oncpu=False, progress=1):
+    def sample_loop(self, lats, batch_pivot=False, oncpu=False):
         mx = len(lats)
         pnum = int(math.ceil(mx / self.bs)) # count of pivots
         bnum = int(math.ceil(pnum / self.bs)) # count of pivotal batches
@@ -273,7 +273,7 @@ def invert(sd, lats, cnet_conds, a):
         print(' decoding..')
         decode_images(sd, recon_lats, os.path.join(a.out_dir, 'recon'))
 
-def edit(sd, lats, cnet_conds, a, progress, cfg_scale):
+def edit(sd, lats, cnet_conds, a, cfg_scale):
     # get noise
     last_lat_path = file_list(a.lat_dir, ext='pt')[-1]
     last_lat_step = int(basename(last_lat_path).split('-')[-1])
@@ -292,7 +292,7 @@ def edit(sd, lats, cnet_conds, a, progress, cfg_scale):
         editor.init_sde()
     noisy_lats = sd.scheduler.add_noise(lats, ddim_eps, sd.scheduler.timesteps[0])
     
-    edited_lats = editor.sample_loop(noisy_lats, a.batch_pivot, a.cpu, progress)
+    edited_lats = editor.sample_loop(noisy_lats, a.batch_pivot, a.cpu)
     print(' decoding..')
     torch.cuda.empty_cache()
     # decode_images(sd, edited_lats, os.path.join(a.out_dir, 'out'))
@@ -307,14 +307,12 @@ def main():
 
     txt = a.in_txt
 
-    if a.ig_strategy == "single":
+    if a.ensembled_strategy == "single":
         cfg_scale_list = [a.cfg_scale]
-    elif a.ig_strategy == "multi":
+    elif a.ensembled_strategy == "ensembled":
         cfg_scale_list = [10, 15, 20]
-    elif a.ig_strategy == "multi2":
-        cfg_scale_list = [5, 15, 25]
 
-    a.steps = a.steps // a.progress
+    a.steps = a.steps // a.update_num
     out_dir = a.out_dir
     for s_idx, cfg_scale in enumerate(cfg_scale_list):
         
@@ -344,7 +342,7 @@ def main():
             # if not os.path.exists(a.lat_dir) or len(file_list(a.lat_dir, ext='pt'))==0:
             invert(sd, lats, cnet_conds, a)
             if isset(a, 'in_txt'):
-                edit(sd, lats, cnet_conds, a, a.progress, cfg_scale)
+                edit(sd, lats, cnet_conds, a, cfg_scale)
 
             try:
                 save_video(os.path.join(a.out_dir, 'out'), fps=8)

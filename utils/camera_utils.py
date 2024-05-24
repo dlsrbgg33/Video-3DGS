@@ -71,6 +71,18 @@ def loadCam(args, id, cam_info, resolution_scale):
     else:
         gt_edited_image = None
 
+
+    if cam_info.img_edited_image is not None:
+        if isinstance(cam_info.img_edited_image, list):
+            img_edited_image = []
+            for idx in range(len(cam_info.img_edited_image)):
+                img_edited_image.append(PILtoTorch(cam_info.img_edited_image[idx], resolution)[:3, ...])
+        else:
+            resized_img_edited_image = PILtoTorch(cam_info.img_edited_image, resolution)
+            img_edited_image = resized_img_edited_image[:3, ...]
+    else:
+        img_edited_image = None
+
     if cam_info.depth is not None:
         depth = cam_info.depth / (cam_info.depth.max() + 1e-5)
         depth = PILtoTorchDepth(depth)
@@ -84,7 +96,7 @@ def loadCam(args, id, cam_info, resolution_scale):
                   FoVx=cam_info.FovX, FoVy=cam_info.FovY, 
                   image=gt_image, gt_alpha_mask=loaded_mask,
                   image_name=cam_info.image_name, uid=id, data_device=args.data_device, fid=cam_info.fid,
-                  gt_detail_image=gt_detail_image, depth=depth, edited_image=gt_edited_image)
+                  gt_detail_image=gt_detail_image, depth=depth, edited_image=gt_edited_image, img_edited_image=img_edited_image)
 
 def cameraList_from_camInfos(cam_infos, resolution_scale, args):
     camera_list = []

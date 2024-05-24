@@ -53,7 +53,7 @@ def init_paths(input_ns):
     
     return input_ns
     
-def run(input_ns, video_path, progress):
+def run(input_ns, video_path, update_num):
     
     if 'model_id' not in list(input_ns.__dict__.keys()):
         input_ns.model_id = "None"
@@ -61,8 +61,8 @@ def run(input_ns, video_path, progress):
     input_ns = init_paths(input_ns)
 
     input_ns.video_path = video_path
-    input_ns.num_inference_steps = input_ns.num_inference_steps // progress
-    input_ns.num_inversion_step = input_ns.num_inversion_step // progress
+    input_ns.num_inference_steps = input_ns.num_inference_steps // update_num
+    input_ns.num_inversion_step = input_ns.num_inversion_step // update_num
 
     input_ns.image_pil_list, frame_count = vgu.prepare_videofolder_to_grid(input_ns.video_path, input_ns.sample_size, input_ns.grid_size, input_ns.pad)
     input_ns.sample_size = len(input_ns.image_pil_list)
@@ -117,9 +117,9 @@ if __name__ == '__main__':
     input_dict_list['save_path'] = sys.argv[2]
     # load video path for inference
     video_path = sys.argv[1]
-    progress = int(sys.argv[4])
-    ig_strategy = str(sys.argv[5]) 
-    if ig_strategy == "multi":
+    update_num = int(sys.argv[4])
+    ensembled_strategy = str(sys.argv[5]) 
+    if ensembled_strategy == "ensembled":
         controlnet_conditioning_scale_list = [1.0, 1.5, 2.0]
     else:
         controlnet_conditioning_scale_list = [1.0]
@@ -153,7 +153,7 @@ if __name__ == '__main__':
             input_dict_list_temp.update({list_keys[i]:item[i] for i in range(len(list_keys))})
 
             input_ns = argparse.Namespace(**input_dict_list_temp)
-            run(input_ns, video_path, progress)
+            run(input_ns, video_path, update_num)
         final_idx = idx
         
 

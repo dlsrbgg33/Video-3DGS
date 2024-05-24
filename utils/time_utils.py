@@ -137,7 +137,6 @@ class DeformNetwork_hash(nn.Module):
         x_emb = normalize_input(x)
         t_emb = t
         h = torch.cat([x_emb, t_emb], dim=-1)
-
         input = self.encoder(h)
         input = torch.cat([h, input], dim=-1)
 

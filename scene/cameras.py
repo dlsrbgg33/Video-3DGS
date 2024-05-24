@@ -19,7 +19,7 @@ class Camera(nn.Module):
     def __init__(self, colmap_id, R, T, FoVx, FoVy, image, gt_alpha_mask,
                  image_name, uid,
                  trans=np.array([0.0, 0.0, 0.0]), scale=1.0, data_device = "cuda", fid=None,
-                 gt_detail_image=None, depth=None, edited_image=None):
+                 gt_detail_image=None, depth=None, edited_image=None, img_edited_image=None):
         super(Camera, self).__init__()
 
         self.uid = uid
@@ -68,6 +68,17 @@ class Camera(nn.Module):
                 self.edited_image = edited_image.to(self.data_device)
         else:
             self.edited_image = None
+
+
+        if img_edited_image is not None:
+            if isinstance(img_edited_image, list):
+                self.img_edited_image = []
+                for idx in range(len(img_edited_image)):
+                    self.img_edited_image.append(img_edited_image[idx].to(self.data_device))
+            else:
+                self.img_edited_image = img_edited_image.to(self.data_device)
+        else:
+            self.img_edited_image = None
 
 
         self.mask = gt_alpha_mask
