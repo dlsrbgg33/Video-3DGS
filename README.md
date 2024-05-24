@@ -88,7 +88,7 @@ git clone https://huggingface.co/openai/clip-vit-large-patch14
 git clone https://huggingface.co/laion/CLIP-ViT-H-14-laion2B-s32B-b79K
 ```
 
-## Video reconstruction
+## Video-3DGS (1st stage): Video Reconstruction
 
 ```shell
 bash sh_recon/davis.sh
@@ -99,7 +99,7 @@ Arguments:
   - group size
   - number of random points
 
-## Video editing
+## Video-3DGS (2nd stage): Video Editing
 ```shell
 bash sh_edit/{initial_editor}/{dataset}.sh
 ```
@@ -107,15 +107,11 @@ We currently support three "initial editors": [Text2Video-Zero](https://github.c
 
 We recommend user to install related packages and modules of above initial editors in Video-3DGS framework to conduct initial video editing.
 
-Arguments:
-  - editing method
-  - initial_editor: choose between 1: Text2Video-Zero / 2: TokenFlow / 3: RAVE
-  - prompt
-  - cate: editing category
-  - progressive_num: the number of recursive refinement
+## Video-3DGS (2nd stage) + Recursive and Ensembled refinement
+```shell
+bash sh_edit/{initial_editor}/davis_re.sh
+```
 
-If you set progressive_num as 0, you will have the refined output from single-phase refiner.
-Otherwise, you will run recursive and ensembled refiner.
 
 ## Citation
 ```shells
