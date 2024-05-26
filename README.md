@@ -120,16 +120,9 @@ bash sh_edit/{initial_editor}/davis_re.sh
 
 ## Acknowledgement
 
-[DEVA](https://github.com/hkchengrex/Tracking-Anything-with-DEVA)
+## 🤗Acknowledgements
+- Thanks to [3DGS](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/) for providing codebase of 3D Gaussian Splatting.
+- Thanks to [Deformable-3DGS](https://github.com/ingra14m/Deformable-3D-Gaussians) for providing codebase of deformable model.
+- Thanks to [Text2Video-Zero](https://github.com/Picsart-AI-Research/Text2Video-Zero), [TokenFlow](https://github.com/omerbt/TokenFlow) and [RAVE](https://rave-video.github.io/) for providing codebase of zero-shot video editors.
+- Thanks to [RAFT](https://github.com/princeton-vl/RAFT) and [CLIP](https://huggingface.co/laion/CLIP-ViT-H-14-laion2B-s32B-b79K) for providing evaluation metric codebase.
 
-[COLMAP](https://github.com/colmap/colmap)
- 
-[3DGS](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/)
-
-[Deformable-3DGS](https://github.com/ingra14m/Deformable-3D-Gaussians)
-
-[Text2Video-Zero](https://github.com/Picsart-AI-Research/Text2Video-Zero)
-
-[TokenFlow](https://github.com/omerbt/TokenFlow)
-
-[RAVE](https://rave-video.github.io/)
