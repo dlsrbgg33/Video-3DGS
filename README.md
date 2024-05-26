@@ -113,12 +113,8 @@ bash sh_edit/{initial_editor}/davis_re.sh
 ```
 
 
-## Citation
-```shells
+## 📖BibTeX
 
-```
-
-## Acknowledgement
 
 ## 🤗Acknowledgements
 - Thanks to [3DGS](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/) for providing codebase of 3D Gaussian Splatting.
