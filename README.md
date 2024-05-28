@@ -24,13 +24,13 @@ According to our paper, we conducted two tasks with the following datasets.
 - Video editing: [LOVEU-TGVE-2023](https://github.com/showlab/loveu-tgve-2023?tab=readme-ov-file) dataset (480x480)
 
 There are two options for pre-processing the datasets.
-1. You can download the datasets with the provided link and run MC-COLMAP (Code for MC-COLMAP will be updated later)
+1. You can download the datasets with above link for original dataset and run MC-COLMAP (Code for MC-COLMAP will be updated later)
 2. You directly download MC-COLMAP processed dataset from [here](https://drive.google.com/drive/folders/1uYmLWUn5veBlUES88-9NKgNibiHxhe_F) 
 
 We organize the datasets as follows:
 
 ```shell
-├── data
+├── datasets
 │   | recon
 │     ├── DAVIS
 │       ├── JPEGImages 
@@ -51,7 +51,7 @@ We organize the datasets as follows:
 ## Environments
 Setting up environments for training contains three parts:
 
-1.  Download [COLMAP](https://github.com/colmap/colmap) (dev version to minimize the randomness issue) and put it under "submodules". (change the folder name to "colmap_dev")
+1.  Download [COLMAP](https://github.com/colmap/colmap) (use dev version to minimize the randomness issue) and put it under "submodules". (change the folder name to "colmap_dev")
 2.  3DGS related packages
 3.  Download [Tiny-cuda-nn](https://github.com/NVlabs/tiny-cuda-nn) and put it under "submodules"
 

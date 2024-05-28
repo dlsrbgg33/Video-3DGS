@@ -24,7 +24,7 @@ bash_script += 'sudo apt-get -y install \
      libcgal-dev \
      libceres-dev' + '\n'
      
-bash_script += 'cd required_modules/colmap_dev' + '\n'
+bash_script += 'cd submodules/colmap_dev' + '\n'
 bash_script += 'sudo rm -rf build' + '\n' 
 bash_script += 'mkdir build' + '\n'  
 bash_script += 'cd build' + '\n' 
@@ -33,6 +33,7 @@ bash_script += 'ninja' + '\n'
 bash_script += 'sudo ninja install' + '\n'
 
 # 2. install 3dgs related packages
+bash_script += 'cd ../../../' + '\n' 
 bash_script += 'python3 -m pip install submodules/depth-diff-gaussian-rasterization' + '\n'
 bash_script += 'python3 -m pip install submodules/simple-knn' + '\n'
 bash_script += 'python3 -m pip install opencv-python' + '\n'
@@ -53,13 +54,14 @@ bash_script += 'sudo python3 setup.py install' +'\n'
 
 
 # 4. adopt video_segmentor (DEVA)
+bash_script += 'cd ../../../../' + '\n' 
 bash_script += 'mkdir models/video_segmentor' + '\n'
 bash_script += 'git clone https://github.com/hkchengrex/Tracking-Anything-with-DEVA.git' + '\n'
 
-with open('/opt/tiger/entry_script.sh', 'w+') as f:
+with open('entry_script.sh', 'w+') as f:
     f.write(bash_script)
 
-os.system('bash /opt/tiger/entry_script.sh')
+os.system('bash entry_script.sh')
 
 
 
