@@ -168,9 +168,9 @@ class Model:
                 self.pipe.unet.set_attn_processor(
                     processor=self.pix2pix_attn_proc)
 
-        if ig_strategy == "single":
+        if ensembled_strategy == "single":
             image_guidance_scale_list = [image_guidance_scale]
-        elif ig_strategy == "ensembled":
+        elif ensembled_strategy == "ensembled":
             # we currently manually set three scales
             image_guidance_scale_list = [1.0, 1.5, 2.0]
         else:
