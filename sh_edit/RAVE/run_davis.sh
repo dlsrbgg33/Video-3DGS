@@ -15,7 +15,7 @@ do
                 CUDA_VISIBLE_DEVICES=$CUDA python3 main_3dgsvid.py -s $SOURCE_DATA \
                     --iteration=$ITERS --use_dual \
                     --group_size=$GNUM --deform_type "multi" \
-                    --random_pts_num 60000  --radius 1 3 --biloss_weight 2.0 \
+                    --random_pts_num 60000  --radius 1 3 --tfloss_weight 2.0 \
                     --editing_method="norecursive_single" --initial_editor 3 \
                     --prompt "$style_change"  --cate="sty" --recursive_num 0\
                     --cuda_num=$CUDA
