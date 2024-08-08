@@ -14,7 +14,7 @@ This repository contains the official Pytorch implementation of the paper "Enhan
 
 - [X] Training and Inference code updated
 - [X] MC-COLMAP pre-processed dataset uploaded
-- [ ] Code for MC-COLMAP uploaded
+- [X] Code for MC-COLMAP uploaded
 
 ## Dataset
 
