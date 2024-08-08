@@ -94,6 +94,8 @@ git clone https://huggingface.co/laion/CLIP-ViT-H-14-laion2B-s32B-b79K
 bash sh_recon/davis.sh
 ```
 
+To effectively obtain reprentation for video editing (2nd stage), we utilize all the training images for each video scene.
+
 Arguments:
   - iteration num
   - group size

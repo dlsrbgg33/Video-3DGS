@@ -39,7 +39,7 @@ class Scene_fore_w_rand_group:
                  shuffle=False, resolution_scales=[1.0], source_path=None, total_frame=100, deform_type="multi",
                  load_after_diff=False, fsize=15,
                  random_pts_num=50000, random_style='nordn', radius=[5,], ext_scale=4, group_idx=0, fore=False,
-                 use_alpha=False, depth_use=False, init_edit_path=None, update_idx=0):
+                 use_alpha=False, init_edit_path=None, update_idx=0):
         """b
         :param path: Path to colmap scene main folder.
         """
@@ -58,7 +58,7 @@ class Scene_fore_w_rand_group:
             # Video-3DGS-Edit, 
             load_iteration = -1
             if not load_after_diff:
-                # We need to load pre-trained 3DGS for SH update
+                # We need to load pre-trained 3DGS for SH update in 2nd stage
                 base_saved_folder_name = base_saved_folder_name.replace(
                     "edit{}".format(str(update_idx)),
                     "edit{}".format(str(update_idx-1)))
@@ -100,13 +100,14 @@ class Scene_fore_w_rand_group:
             clip_end = max(int(clip_source_path.split('_')[-1][2:]), clip_end)
         frame_number = clip_end - clip_start + 1
 
+
         for sub_source_path in source_path:
             self.train_cameras = {}
             self.test_cameras = {}
             scene_info = sceneLoadTypeCallbacks["ColmapFB"](
                 sub_source_path, args.eval,
-                n_frames=frame_number, f_size=fsize, deform_type=deform_type, first_idx=clip_start,
-                depth_use=depth_use, init_edit_path=init_edit_path)
+                n_frames=frame_number, f_size=fsize, deform_type=deform_type,
+                first_idx=clip_start, init_edit_path=init_edit_path)
 
             if not self.loaded_iter:
                 with open(scene_info.ply_path, 'rb') as src_file, open(os.path.join(self.model_path, "input.ply") , 'wb') as dest_file:
