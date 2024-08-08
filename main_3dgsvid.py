@@ -1,18 +1,15 @@
 """
-This file may have been modified by Bytedance Ltd. and/or its affiliates (“Bytedance's Modifications”).
-All Bytedance's Modifications are Copyright (year) Bytedance Ltd. and/or its affiliates. 
-
 3DGS Reference: 3D Gaussian Splatting for Real-Time Radiance Field Rendering [1]
             (https://github.com/graphdeco-inria/gaussian-splatting)
 Open VOS Reference: DEVA: Tracking Anything with Decoupled Video Segmentation [2]
             (https://github.com/hkchengrex/Tracking-Anything-with-DEVA)
 
-Video Editors References
+Zero-shot Video Editors References
 - Text2Video-Zero: Text-to-Image Diffusion Models are Zero-Shot Video Generators (ICCV 2023) [3]
             (https://github.com/Picsart-AI-Research/Text2Video-Zero)
 - TokenFlow: TokenFlow: Consistent Diffusion Features for Consistent Video Editing (ICLR 2024) [4]
             (https://github.com/omerbt/TokenFlow)
-- RAVE: Randomized Noise Shuffling for Fast and Consistent Video Editing with Diffusion Models [5]
+- RAVE: Randomized Noise Shuffling for Fast and Consistent Video Editing with Diffusion Models (CVPR 2024) [5]
             (https://github.com/rehg-lab/RAVE)
 """
 
@@ -32,7 +29,7 @@ import time
 import shutil
 
 # define MC-COLMAP function
-from mc_colmap import run_colmap_mask_clip, run_colmap
+from mc_colmap import run_colmap_mask_clip
 
 # define 3DGS related functions
 from gaussian_renderer import render_deform
@@ -71,6 +68,7 @@ def training(dataset, opt, pipe, saving_iterations, checkpoint_iterations,
     # Here, we set multiple gaussians for multiple clips in video
     gaussians_f_list, scene_f_list = dict(), dict()
     gaussians_b_list, scene_b_list = dict(), dict()
+    # we don't use random points for Frg-3DGS
     fore_random_style = "nordn" if use_dual else fore_random
     for group_idx, clip_path in clip_dict.items():
         # create gaussian model and scene for each group - fore / back
@@ -93,27 +91,29 @@ def training(dataset, opt, pipe, saving_iterations, checkpoint_iterations,
             scene_b_list[group_idx] = scene_back
             # sanity check
             assert len(gaussians_f_list) == len(gaussians_b_list), \
-             "number of group should be same for fore and back"
+             "number of group should be same for Frg-3DGS and Bkg-3DGS"
 
     bg_color = [1, 1, 1] if dataset.white_background else [0, 0, 0]
     background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
 
-    # Define deformation networks for each clips
-    # we have multiple deformation networks in the same group
+    ## deformation network for Frg-3DGS
     deform_fore_all_dict = {}
     for group_idx in range(len(scene_f_list)):
         if deform_type == "multi":
+            # multiple deformation networks for clips in same group
             deform_fore_all_dict[group_idx] = {clip_idx: create_deform_model(
                                                     opt, edited_path=edited_path, group_idx=group_idx,
                                                     clip_idx=clip_idx, fore=True, model_path=dataset.model_path)
                                                     for clip_idx in range(len(scene_f_list[group_idx].getTrainCameras()))}
         elif deform_type == "single":
+            # share single deformation network for clips in same group
             deform_fore_all_dict[group_idx] = create_deform_model(
                                                     opt, edited_path=edited_path, group_idx=group_idx,
                                                     clip_idx=0, model_path=dataset.model_path)
         else:
             raise NotImplementedError("current deformation type supports multi / single")
-
+    
+    ## deformation network for Bkg-3DGS
     deform_back_all_dict = {}
     if use_dual:
         for group_idx in range(len(scene_b_list)):
@@ -130,7 +130,7 @@ def training(dataset, opt, pipe, saving_iterations, checkpoint_iterations,
                 raise NotImplementedError("current deformation type supports multi / single")
 
                
-    # sequential training starts for each groups
+    # Sequential training starts for each groups
     for group_int in range(len(gaussians_f_list)):
         first_iter = 0
         iter_start = torch.cuda.Event(enable_timing = True)
@@ -138,11 +138,12 @@ def training(dataset, opt, pipe, saving_iterations, checkpoint_iterations,
         ema_loss_for_log = 0.0
         progress_bar = tqdm(range(first_iter, opt.iterations), desc="Training progress")
         first_iter += 1
-
         clip_idx = 0
+        
         gaussians_f = gaussians_f_list[group_int]
         scene_f = scene_f_list[group_int]
         deform_fore_dict = deform_fore_all_dict[group_int]
+
         if use_dual:
             gaussians_b = gaussians_b_list[group_int]
             scene_b = scene_b_list[group_int]
@@ -154,7 +155,7 @@ def training(dataset, opt, pipe, saving_iterations, checkpoint_iterations,
         viewpoint_stack_back = None
         deform_back = None
 
-        # unified training for the clips in the same group with single fore / back 3dg
+        # Clip training for Frg-3DGS and Bkg-3DGS
         for iteration in range(first_iter, opt.iterations + 1):  
             iter_start.record()
 
@@ -229,6 +230,8 @@ def training(dataset, opt, pipe, saving_iterations, checkpoint_iterations,
             # loss for fore and back
             loss = 0
 
+            # Loss functions for Frg-3DGS and Bkg-3DGS
+            ## separate losses for each and another loss for merged one
             for gt_ in gt_image:  
                 loss += loss_func_w_bilateral(opt, image_f, gt_, tfloss_weight=0.0)
 
@@ -242,7 +245,6 @@ def training(dataset, opt, pipe, saving_iterations, checkpoint_iterations,
                 for gt_ in gt_image:
                     loss_b += loss_func_w_bilateral(opt, image_b, gt_, tfloss_weight=0.0)
 
-                # loss for blended output
                 if edited_path is not None:
                     with torch.no_grad():
                         bled_alpha_frame = bled_alpha[cam_index]
@@ -303,7 +305,7 @@ def training(dataset, opt, pipe, saving_iterations, checkpoint_iterations,
                     if iteration % opt.opacity_reset_interval == 0 or (dataset.white_background and iteration == opt.densify_from_iter):
                         gaussians_f.reset_opacity()
 
-                    # back 3dgs Densification
+                    # Bkg-3DGS Densification
                     if use_dual:
                         # Keep track of max radii in image-space for pruning
                         gaussians_b.max_radii2D[visibility_filter_b] = torch.max(gaussians_b.max_radii2D[visibility_filter_b], radii_b[visibility_filter_b])
@@ -435,7 +437,7 @@ if __name__ == "__main__":
         help="[style, object, back, multi]")
     parser.add_argument('--recursive_num', type=int, default=0)
     parser.add_argument('--cuda_num', type=int, default=2)
-    parser.add_argument('--delete_weights', type=bool, default=True)
+    parser.add_argument('--delete_weights', type=bool, default=False)
 
 
     args = parser.parse_args(sys.argv[1:])
@@ -443,7 +445,7 @@ if __name__ == "__main__":
     edit_args = edit_parser.parse_args(sys.argv[1:])
 
     # You can choose the different iteration options
-    # For reconstruction, you can choose among 3k/5k/10k.
+    # For reconstruction, you can choose among 3k/5k/10k iterations.
     if args.iteration == 3000:
         op = OptimizationClipMaskParams3k(parser)
         iter_size = '3k'
@@ -464,7 +466,7 @@ if __name__ == "__main__":
     edit_args = edit_parser.parse_args(sys.argv[1:])
     edit_args.save_iterations.append(edit_args.iterations)
     
-    # Name output path
+    # define parameters by arguments
     s_path = args.source_path
     if len(args.radius) > 1:
         radius = 'multi'
@@ -486,12 +488,15 @@ if __name__ == "__main__":
         editor="tokenflow"
     elif args.initial_editor == 3:
         editor="RAVE"
+    elif args.initial_editor == 4:
+        editor="codef"
     else:
         editor="noedit"
 
     prompt = args.prompt
     if args.editing_method is not None:
         if "norecursive" in args.editing_method:
+            # If not recursive, recursive number should be zero
             assert args.recursive_num == 0
 
     '''
@@ -519,8 +524,8 @@ if __name__ == "__main__":
        1) initial_editor
        2) editing method
     '''
-    scene_name=s_path.split('/')[-1]
 
+    scene_name=s_path.split('/')[-1]
     args.model_path = "output/vid3dgs_output/recon/dual{}_fore{}_def{}_group{}_tf{}_fsize{}_iter{}/{}_frame{}".format(
         args.use_dual, args.fore_random, args.deform_type, str(args.group_size),
         args.tfloss_weight, args.f_size, args.iteration, scene_name, str(frame_number))
@@ -548,7 +553,7 @@ if __name__ == "__main__":
     subfolders_fore = [f.name for f in os.scandir(fore_folder) if f.is_dir()]
     clip_folders_fore = [folder for folder in subfolders_fore if folder.startswith("clip_")]
 
-    # 1-2. Generate mask (DEVA[2])
+    # 1-2. Generate mask (we current use DEVA[2] w/ SAM)
     start_time = time.time()
     logging.info(f"Generating Mask for Frg-3DGS")
     input_path = os.path.join(pts_folder, 'input')
@@ -556,6 +561,7 @@ if __name__ == "__main__":
         shutil.copytree(s_path, input_path)
     saved_mask_path = os.path.join(pts_folder, 'mask')
     if not args.use_pre_obtained_mask:
+        # Recommend to install requirements for DEVA before running cmd
         cmd = (
             f'python3 models/video_segmentor/DEVA/demo/demo_with_text.py '
             f'--chunk_size 4 --img_path {args.source_path} --amp --temporal_setting semionline '
