@@ -116,6 +116,17 @@ bash sh_edit/{initial_editor}/davis_re.sh
 
 
 ## 📖BibTeX
+If you find this code helpful in your research or wish to refer to the baseline
+results, please use the following BibTeX entry.
+
+```
+@article{shin2024enhancing,
+  title={Enhancing Temporal Consistency in Video Editing by Reconstructing Videos with 3D Gaussian Splatting},
+  author={Shin, Inkyu and Yu, Qihang and Shen, Xiaohui and Kweon, In So and Yoon, Kuk-Jin and Chen, Liang-Chieh},
+  journal={arXiv preprint arXiv:2406.02541},
+  year={2024}
+}
+```
 
 
 ## 🤗Acknowledgements
