@@ -162,7 +162,7 @@ class GaussianModel:
         self._opacity = nn.Parameter(opacities.requires_grad_(True))
         self.max_radii2D = torch.zeros((self.get_xyz.shape[0]), device="cuda")
 
-        # Below define the alpha map for merging between fore 3dgs and back 3dgs
+        # Below define the alpha map for merging between Frg-3DGS and Bkg-3DGS
         if self._alpha is not None:
             alpha_list = []
             for mask in camera_mask_list:
