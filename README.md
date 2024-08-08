@@ -8,7 +8,7 @@ This repository contains the official Pytorch implementation of the paper "Enhan
 
 ## News
 
-- 24/05/xx:  paper/website/code are released.
+- 24/08/xx: Code for Video-3DGS is publicly released.
 
 ## TODO
 
