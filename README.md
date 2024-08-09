@@ -109,6 +109,8 @@ We currently support three "initial editors": [Text2Video-Zero](https://github.c
 
 We recommend user to install related packages and modules of above initial editors in Video-3DGS framework to conduct initial video editing.
 
+For running TokenFlow efficiently (e.g., edit long video), we borrowed the some strategies from [here](https://github.com/eps696/SDfu).
+
 ## Video-3DGS (2nd stage) + Recursive and Ensembled refinement
 ```shell
 bash sh_edit/{initial_editor}/davis_re.sh

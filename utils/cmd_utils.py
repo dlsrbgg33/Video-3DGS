@@ -15,7 +15,10 @@ def edit_cmd_run(editor, cuda_num, prev_vid, text, edited_path, update_num, ori_
         print(cmd)
         os.system(cmd)
     elif editor == "RAVE":
-        # 
+        # There is module version conflict between RAVE and 3DGS
+        ## To run RAVE, we recommend user to create a new conda environment and install RAVE (named "rave")
+        ## Then, deactivate 3DGS and activate rave environment / run RAVE / deactivate rave and activate 3DGS
+        # TODO) optimize the code to run RAVE without changing the environment
         cmds =[]
         cmd = (
             f'eval "$(conda shell.bash hook)" && '
