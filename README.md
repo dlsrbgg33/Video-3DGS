@@ -101,7 +101,12 @@ Arguments:
   - number of random points
 
 
-<video src="https://github.com/dlsrbgg33/Video-3DGS/tree/main/asset/reconstruction.mp4"></video>
+<!-- <video src="asset/reconstruction.mp4"></video> -->
+
+<video width="600" controls>
+  <source src="asset/reconstruction.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
 
 ## Video-3DGS (2nd stage): Video Editing
 ```shell
