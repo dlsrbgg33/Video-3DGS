@@ -51,8 +51,8 @@ We organize the datasets as follows:
 ## Environments
 Setting up environments for training contains three parts:
 
-1.  Download [COLMAP](https://github.com/colmap/colmap) and put it under "submodules". (change the folder name to "colmap_dev")
-2.  Download [Tiny-cuda-nn](https://github.com/NVlabs/tiny-cuda-nn) and put it under "submodules"
+1.  Download [COLMAP](https://github.com/colmap/colmap) and put it under "submodules".
+2.  Download [Tiny-cuda-nn](https://github.com/NVlabs/tiny-cuda-nn) and put it under "submodules".
 
 ```shell
 git clone https://github.com/dlsrbgg33/Video-3DGS.git --recursive
@@ -101,7 +101,6 @@ Arguments:
   - number of random points
 
 
-<!-- <video src="asset/reconstruction.mp4"></video> -->
 
 <video width="600" controls>
   <source src="asset/reconstruction.mp4" type="video/mp4">

@@ -24,7 +24,7 @@ bash_script += 'sudo apt-get -y install \
      libcgal-dev \
      libceres-dev' + '\n'
      
-bash_script += 'cd submodules/colmap_dev' + '\n'
+bash_script += 'cd submodules/colmap' + '\n'
 bash_script += 'sudo rm -rf build' + '\n' 
 bash_script += 'mkdir build' + '\n'  
 bash_script += 'cd build' + '\n' 
