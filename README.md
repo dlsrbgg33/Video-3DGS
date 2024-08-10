@@ -101,13 +101,6 @@ Arguments:
   - number of random points
 
 
-
-<video width="600" height="400" controls>
-  <source src="asset/reconstruction.mp4" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
-
-
 ## Video-3DGS (2nd stage): Video Editing
 ```shell
 bash sh_edit/{initial_editor}/{dataset}.sh
