@@ -25,9 +25,7 @@ def merge_and_generate(view_f, gaussians_f, pipeline, background,
     rendering_b = render_deform(view_b, gaussians_b, pipeline, background, d_xyz_b, d_rotation_b, d_scaling_b)["render"]
 
     rendering_fusion = (bled_alpha_frame)*rendering_f + (1.-bled_alpha_frame)*rendering_b
-
     rendered_file_name = '{0:05d}'.format(idx) + ".png"
-
 
     gt = view_f.original_image_nomask[0:3, :, :]
     if load_after_diff:
@@ -35,7 +33,6 @@ def merge_and_generate(view_f, gaussians_f, pipeline, background,
             initial = view_f.edited_image[idx][0:3, :, :]
             torchvision.utils.save_image(initial, os.path.join(init_edit, rendered_file_name))
 
-    
     torchvision.utils.save_image(gt, os.path.join(gts_path, rendered_file_name))
     torchvision.utils.save_image(rendering_fusion, os.path.join(render_path, rendered_file_name))
 
@@ -45,12 +42,14 @@ def render_func(model_path, iteration, views_f_list,
                 gaussians_b_list, deform_back_dict, pipeline, background, deform_type,
                 load_after_diff=False, init_edit_path=None, update_idx=0):
 
+    # train_edit0 contains reconstructed video (no editing results are included)
     render_path = os.path.join(
         model_path, "train_edit{}".format(str(update_idx)), "ours_{}".format(iteration), "renders")
     gts_path = os.path.join(
         model_path, "train_edit{}".format(str(update_idx)), "ours_{}".format(iteration), "gt")
 
     if load_after_diff:
+        # load initial edited frames and refined ones using Video-3DGS
         initial_edit_path = []
         render_path = render_path.replace('renders', 'refined_edited')
         for init_edit_pt in sorted(os.listdir(init_edit_path)):
@@ -82,6 +81,7 @@ def render_func(model_path, iteration, views_f_list,
                 view_b = views_b[1.0][view_idx]
                 fid = view_f.fid
                 time_inputf = fid.unsqueeze(0).expand(gaussians_f_list[idx].get_xyz.shape[0], -1)
+                # bid = fid
                 time_inputb = fid.unsqueeze(0).expand(gaussians_b_list[idx].get_xyz.shape[0], -1)
                 
                 if deform_type == "multi":
