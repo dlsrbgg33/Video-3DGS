@@ -100,14 +100,8 @@ Arguments:
   - group size
   - number of random points
 
-<video width="320" height="240" controls>
-  <source src="asset/reconstruction.mp4" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
 
-
-<video src='asset/reconstruction.mp4' width='600'>
-
+<video src="https://github.com/dlsrbgg33/Video-3DGS/tree/main/asset/reconstruction.mp4"></video>
 
 ## Video-3DGS (2nd stage): Video Editing
 ```shell
