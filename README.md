@@ -102,6 +102,8 @@ Arguments:
 
 https://github.com/user-attachments/assets/8eb8e201-ef3b-461c-985b-72d3fa19cd54?width=100&height=100
 
+- Video reconstruction for "drift-turn" in DAVIS dataset
+
 ## Video-3DGS (2nd stage): Video Editing
 ```shell
 bash sh_edit/{initial_editor}/{dataset}.sh
@@ -112,11 +114,17 @@ We recommend user to install related packages and modules of above initial edito
 
 For running TokenFlow efficiently (e.g., edit long video), we borrowed the some strategies from [here](https://github.com/eps696/SDfu).
 
+https://github.com/user-attachments/assets/923dec4a-fb23-4c02-a187-a51cb57501a8?width=100&height=100
+
+- Singe-phase refiner for "Text2Video-Zero" editor
+
 ## Video-3DGS (2nd stage) + Recursive and Ensembled refinement
 ```shell
 bash sh_edit/{initial_editor}/davis_re.sh
 ```
+https://github.com/user-attachments/assets/866d241c-8d63-4d49-9657-9b02737e9c40?width=100&height=100
 
+- Recursive and ensembled refiner for "Text2Video-Zero" editor
 
 ## 📖BibTeX
 If you find this code helpful in your research or wish to refer to the baseline
