@@ -100,6 +100,7 @@ Arguments:
   - group size
   - number of random points
 
+https://github.com/user-attachments/assets/8eb8e201-ef3b-461c-985b-72d3fa19cd54?width=100&height=100
 
 ## Video-3DGS (2nd stage): Video Editing
 ```shell
