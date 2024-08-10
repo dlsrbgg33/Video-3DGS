@@ -24,7 +24,7 @@ According to our paper, we conducted two tasks with the following datasets.
 - Video editing: [LOVEU-TGVE-2023](https://github.com/showlab/loveu-tgve-2023?tab=readme-ov-file) dataset (480x480)
 
 There are two options for pre-processing the datasets.
-1. You can download the datasets with above link for original dataset and run MC-COLMAP (Code for MC-COLMAP will be updated later)
+1. You can download the datasets with above link for original dataset and run MC-COLMAP.
 2. You directly download MC-COLMAP processed dataset from [here](https://drive.google.com/drive/folders/1uYmLWUn5veBlUES88-9NKgNibiHxhe_F) 
 
 We organize the datasets as follows:
@@ -51,9 +51,8 @@ We organize the datasets as follows:
 ## Environments
 Setting up environments for training contains three parts:
 
-1.  Download [COLMAP](https://github.com/colmap/colmap) (use dev version to minimize the randomness issue) and put it under "submodules". (change the folder name to "colmap_dev")
-2.  3DGS related packages
-3.  Download [Tiny-cuda-nn](https://github.com/NVlabs/tiny-cuda-nn) and put it under "submodules"
+1.  Download [COLMAP](https://github.com/colmap/colmap) and put it under "submodules". (change the folder name to "colmap_dev")
+2.  Download [Tiny-cuda-nn](https://github.com/NVlabs/tiny-cuda-nn) and put it under "submodules"
 
 ```shell
 git clone https://github.com/dlsrbgg33/Video-3DGS.git --recursive
@@ -94,12 +93,17 @@ git clone https://huggingface.co/laion/CLIP-ViT-H-14-laion2B-s32B-b79K
 bash sh_recon/davis.sh
 ```
 
-To effectively obtain reprentation for video editing (2nd stage), we utilize all the training images for each video scene.
+To effectively obtain reprentation for video editing, we utilize all the training images for each video scene in this stage.
 
 Arguments:
   - iteration num
   - group size
   - number of random points
+
+<video width="320" height="240" controls>
+  <source src="asset/reconstruction.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
 
 ## Video-3DGS (2nd stage): Video Editing
 ```shell
