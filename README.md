@@ -105,8 +105,8 @@ Arguments:
   Your browser does not support the video tag.
 </video>
 
-[![Watch the video]
-(https://github.com/dlsrbgg33/Video-3DGS/tree/main/asset/reconstruction.mp4)]
+
+<video src='asset/reconstruction.mp4' width='600'>
 
 
 ## Video-3DGS (2nd stage): Video Editing
