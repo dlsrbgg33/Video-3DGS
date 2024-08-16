@@ -1,0 +1,6 @@
+[submodule "submodules/depth-diff-gaussian-rasterization_1"]
+	path = submodules/depth-diff-gaussian-rasterization_1
+	url = https://github.com/ingra14m/diff-gaussian-rasterization-extentions.git
+[submodule "submodules/depth-diff-gaussian-rasterization"]
+	path = submodules/depth-diff-gaussian-rasterization
+	url = https://github.com/ingra14m/diff-gaussian-rasterization-extentions.git
