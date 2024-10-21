@@ -5,17 +5,6 @@
 This repository contains the official Pytorch implementation of the paper "Enhancing Temporal Consistency in Video Editing by Reconstructing Videos with 3D Gaussian Splatting".
 
 
-
-## News
-
-- 24/08/xx: Code for Video-3DGS is publicly released.
-
-## TODO
-
-- [X] Training and Inference code updated
-- [X] MC-COLMAP pre-processed dataset uploaded
-- [X] Code for MC-COLMAP uploaded
-
 ## Dataset
 
 According to our paper, we conducted two tasks with the following datasets.
