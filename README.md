@@ -1,5 +1,5 @@
 # Enhancing Temporal Consistency in Video Editing by Reconstructing Videos with 3D Gaussian Splatting
-## [Project page](https://video-3dgs-project.github.io/) | [Paper]()
+## [Project page](https://video-3dgs-project.github.io/) | [Paper](https://arxiv.org/pdf/2406.02541)
 <img src='asset/teaser.png' width='600'>
 
 This repository contains the official Pytorch implementation of the paper "Enhancing Temporal Consistency in Video Editing by Reconstructing Videos with 3D Gaussian Splatting".
