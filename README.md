@@ -28,6 +28,10 @@ We organize the datasets as follows:
 │           ├── blackswan_pts_camera_from_deva
 │           ├── ...
 │   | edit
+│     ├── DAVIS
+│       ├── 480p_frames 
+│         ├── bmx-rider
+│         ├── bmx-rider_pts_camera_from_deva
 
 
 ```
@@ -64,7 +68,6 @@ Setting up environments for evaluation contains two parts:
 ```shells
 cd models/optical_flow/RAFT
 bash download_models.sh
-unzip models.zip
 ```
 
 2. download CLIP pre-trained models (CLIPScore, Qedit)
