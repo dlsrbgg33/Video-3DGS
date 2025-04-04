@@ -1,4 +1,4 @@
-# Enhancing Temporal Consistency in Video Editing by Reconstructing Videos with 3D Gaussian Splatting
+# Enhancing Temporal Consistency in Video Editing by Reconstructing Videos with 3D Gaussian Splatting [TMLR 2025]
 ## [Project page](https://video-3dgs-project.github.io/) | [Paper](https://arxiv.org/pdf/2406.02541)
 <img src='asset/teaser.png' width='600'>
 
